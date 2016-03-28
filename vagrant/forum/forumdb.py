@@ -3,9 +3,12 @@
 # 
 
 import time
+import psycopg2
+import bleach
 
 ## Database connection
-DB = []
+DB = psycopg2.connect("dbname=forum")
+c = DB.cursor()
 
 ## Get posts from database.
 def GetAllPosts():
@@ -16,8 +19,10 @@ def GetAllPosts():
       pointing to the post content, and 'time' key pointing to the time
       it was posted.
     '''
-    posts = [{'content': str(row[1]), 'time': str(row[0])} for row in DB]
-    posts.sort(key=lambda row: row['time'], reverse=True)
+    c.execute("select content, time from posts order by time;")
+    rows = c.fetchall()
+    posts = [{'content': str(row[0]), 'time': str(row[1])} for row in rows]
+	##    posts.sort(key=lambda row: row['time'], reverse=True)
     return posts
 
 ## Add a post to the database.
@@ -28,4 +33,8 @@ def AddPost(content):
       content: The text content of the new post.
     '''
     t = time.strftime('%c', time.localtime())
-    DB.append((t, content))
+    content = bleach.clean(content)
+    cmd = "insert into players values(%s, %s);"
+    c.execute(cmd, (content, t,))
+    DB.commit()
+	##   DB.append((t, content))
