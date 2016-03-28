@@ -8,31 +8,31 @@ import psycopg2
 
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
-    return psycopg2.connect("dbname=tournament")
+
+    conn = psycopg2.connect("dbname=tournament")
+    c = conn.cursor()
+    return conn, c 
 
 
 def deleteMatches():
     """Remove all the match records from the database."""
-    conn = connect()
-    c = conn.cursor()
-    c.execute("DELETE from matches;")
+    conn, c = connect()
+    c.execute("TRUNCATE matches;")
     conn.commit() 
     conn.close()
 
 def deletePlayers():
     """Remove all the player records from the database."""
-    conn = connect()
-    c = conn.cursor()
-    c.execute("DELETE from players;")
+    conn, c = connect()
+    c.execute("TRUNCATE players CASCADE;")
     conn.commit() 
     conn.close()
 
 
 def countPlayers():
     """Returns the number of players currently registered."""
-    conn = connect()
-    c = conn.cursor()
-    c.execute("SELECT count(*) as num from players;")
+    conn, c = connect()
+    c.execute("SELECT count(*) AS num FROM players;")
     count = c.fetchall()
     conn.close()
     return count[0][0]
@@ -48,9 +48,8 @@ def registerPlayer(name):
       name: the player's full name (need not be unique).
     """
 
-    conn = connect()
-    c = conn.cursor()
-    cmd = "insert into players (name) values(%s);"
+    conn, c = connect()
+    cmd = "INSERT INTO players (name) VALUES(%s);"
     c.execute(cmd, (name,))
     conn.commit() 
     conn.close()
@@ -70,9 +69,8 @@ def playerStandings():
         matches: the number of matches the player has played
     """
 
-    conn = connect()
-    c = conn.cursor()
-    cmd = "SELECT win_table.id, win_table.name, win_table.wins, match_table.match from view_wins as win_table left join view_matches as match_table on win_table.id = match_table.id order by win_table.wins DESC;"
+    conn, c = connect()
+    cmd = "SELECT win_table.id, win_table.name, win_table.wins, match_table.match FROM view_wins AS win_table LEFT JOIN view_matches AS match_table ON win_table.id = match_table.id ORDER BY win_table.wins DESC;"
     c.execute(cmd)
     standings = c.fetchall()
     conn.close()
@@ -86,9 +84,8 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
-    conn = connect()
-    c = conn.cursor()
-    cmd = "insert into matches (winner, loser) values(%s, %s);"
+    conn, c = connect()
+    cmd = "INSERT INTO matches (winner, loser) VALUES(%s, %s);"
     c.execute(cmd, (winner, loser))
     conn.commit() 
     conn.close()
@@ -110,8 +107,7 @@ def swissPairings():
         name2: the second player's name
     """
     standings = playerStandings()
-    conn = connect()
-    c = conn.cursor()
+    conn, c = connect()
     pairings = []
     nPlayers = len(standings)
     if nPlayers % 2 == 0:
@@ -122,8 +118,8 @@ def swissPairings():
             while i<=len(standings):
                 id2 = standings[len(standings)-i][0]
                 ## Preventing Rematch by checking for previous match data from matches table
-                cmd = "SELECT match_id from matches where (winner = '%s' AND loser = '%s') OR (winner = '%s' AND loser = '%s')" % (id1, id2, id2, id1)
-                c.execute(cmd)
+                cmd = "SELECT match_id FROM matches WHERE (winner = %s AND loser = %s) OR (winner = %s AND loser = %s)"
+                c.execute(cmd, (id1, id2, id2, id1))
                 matches = c.fetchall()
                 if len(matches) == 0:
                     break
@@ -141,8 +137,8 @@ def swissPairings():
         id1 = 0
         for row in standings.reverse():
             id1 = row[0]
-            cmd = "SELECT match_id from matches where (winner = '%s' AND loser = '%s')" % (id1, id1)
-            c.execute(cmd)
+            cmd = "SELECT match_id FROM matches WHERE (winner = %s AND loser = %s)" 
+            c.execute(cmd, (id1, id1))
             matches = c.fetchall()
             if len(matches) == 0:
                 del row
@@ -155,8 +151,8 @@ def swissPairings():
             while i<=len(standings):
                 id2 = standings[len(standings)-i][0]
                 ## Preventing Rematch by checking for previous match data from matches table
-                cmd = "SELECT match_id from matches where (winner = '%s' AND loser = '%s') OR (winner = '%s' AND loser = '%s')" % (id1, id2, id2, id1)
-                c.execute(cmd)
+                cmd = "SELECT match_id FROM matches WHERE (winner = %s AND loser = %s) OR (winner = %s AND loser = %s)"
+                c.execute(cmd, (id1, id2, id2, id1))
                 matches = c.fetchall()
                 if len(matches) == 0:
                     break
@@ -169,8 +165,3 @@ def swissPairings():
         conn.close()
         pairings.reverse()
         return pairings
-        
-
-    
-
-
