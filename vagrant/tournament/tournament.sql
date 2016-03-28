@@ -26,14 +26,14 @@ CREATE TABLE matches(
 );
 
 CREATE VIEW view_wins AS
-SELECT players.player_id as id, players.name as name, count(matches.winner) as wins
-from players left join matches 
-on players.player_id = matches.winner 
-group by players.player_id;
+SELECT players.player_id AS id, players.name AS name, count(matches.winner) AS wins
+FROM players LEFT JOIN matches 
+ON players.player_id = matches.winner 
+GROUP BY players.player_id;
 
 
 CREATE VIEW view_matches AS
-SELECT players.player_id as id, count(matches.winner) as match 
-from players left join matches 
-on players.player_id = matches.winner or players.player_id = matches.loser 
-group by players.player_id;
+SELECT players.player_id AS id, count(matches.winner) AS match 
+FROM players LEFT JOIN matches 
+ON players.player_id = matches.winner OR players.player_id = matches.loser 
+GROUP BY players.player_id;
